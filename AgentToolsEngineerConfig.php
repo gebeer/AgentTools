@@ -129,6 +129,19 @@ class AgentToolsEngineerConfig extends Wire {
 		$f->val((int) $this->at->get('engineer_readonly'));
 		$f->columnWidth = 50;
 		$outerFs->add($f);
+
+		/** @var InputfieldSelect $f */
+		$f = $modules->get('InputfieldSelect');
+		$f->attr('name', 'engineer_migration_workflow');
+		$f->label = $this->_('Migration workflow');
+		$f->description = $this->_('Controls whether the Engineer can create native AgentTools migration files or only provide RockMigrations guidance.');
+		$f->addOptions([
+			AgentToolsEngineer::migrationWorkflowRockMigrations => $this->_('RockMigrations (recommended for this project)'),
+			AgentToolsEngineer::migrationWorkflowAgentTools => $this->_('Native AgentTools migrations'),
+		]);
+		$f->val($this->at->get('engineer_migration_workflow') ?: AgentToolsEngineer::migrationWorkflowRockMigrations);
+		$f->columnWidth = 50;
+		$outerFs->add($f);
 		
 		/** @var InputfieldInteger $f */
 		$f = $modules->get('InputfieldInteger');

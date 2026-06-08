@@ -24,6 +24,7 @@
  * @property string $engineer_description
  * @property string $engineer_agent_name
  * @property int|bool $engineer_readonly
+ * @property string $engineer_migration_workflow
  * @property string $engineer_instructions
  * @property string $engineer_memory
  * @property int $engineer_mem_qty
@@ -108,7 +109,7 @@ class AgentTools extends WireData implements Module, ConfigurableModule {
 		// establish config variables with defaults
 		$keys = [
 			'provider', 'api_key', 'model', 'endpoint',
-			'label', 'readonly', 'additional_models',
+			'label', 'readonly', 'migration_workflow', 'additional_models',
 			'agent_name', 'instructions', 'memory', 'mem_qty', 'max_iterations', 'request_timeout',
 			'email_from', 'debug_mode', 'trace_mode', 'trace_keep_days', 'trace_include_content',
 			'suspicious', 'suspicious_email', 'suspicious_log', 'user',

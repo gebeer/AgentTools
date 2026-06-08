@@ -21,6 +21,9 @@ class AgentToolsEngineer extends AgentToolsHelper {
 	const providerAnthropic = 'anthropic';
 	const providerOpenAI = 'openai';
 
+	const migrationWorkflowRockMigrations = 'rockmigrations';
+	const migrationWorkflowAgentTools = 'agenttools';
+
 	const defaultAnthropicModel = 'claude-sonnet-4-6';
 	const defaultOpenAIModel = 'gpt-5.5';
 
@@ -559,9 +562,9 @@ class AgentToolsEngineer extends AgentToolsHelper {
 	public function cliHelp(): array {
 		return [
 			'php index.php --at-engineer "REQUEST"' =>
-				'Ask the Engineer a question or request a change [--model=N] [--readonly] [--verbose]',
+				'Ask the Engineer a question or request guidance [--model=N] [--readonly] [--verbose]',
 			'php index.php --at-engineer-migrate "REQUEST"' =>
-				'Have the Engineer create a migration; outputs the migration file path [--model=N] [--verbose]',
+				'Create a native AgentTools migration when that workflow is enabled [--model=N] [--verbose]',
 			'php index.php --at-engineer-site-info pages|schema|modules [--refresh]' =>
 				'Print generated site info JSON without calling an AI provider',
 			'php index.php --at-engineer-api-docs-list' =>
@@ -620,6 +623,11 @@ class AgentToolsEngineer extends AgentToolsHelper {
 
 		if(!$question) {
 			fwrite(STDERR, "ERROR: Usage: php index.php --at-engineer \"REQUEST\"\n");
+			return false;
+		}
+
+		if($migrate && !$this->usesNativeMigrations()) {
+			fwrite(STDERR, "ERROR: Native AgentTools migrations are disabled for this Engineer. Use the processwire-rockmigrations skill and RockMigrations files instead.\n");
 			return false;
 		}
 
@@ -846,6 +854,28 @@ class AgentToolsEngineer extends AgentToolsHelper {
 	}
 
 	/**
+	 * Get configured migration workflow
+	 *
+	 * @return string
+	 *
+	 */
+	protected function getMigrationWorkflow(): string {
+		$workflow = (string) $this->at->get('engineer_migration_workflow');
+		if($workflow === self::migrationWorkflowAgentTools) return self::migrationWorkflowAgentTools;
+		return self::migrationWorkflowRockMigrations;
+	}
+
+	/**
+	 * Should Engineer expose native AgentTools migration creation?
+	 *
+	 * @return bool
+	 *
+	 */
+	protected function usesNativeMigrations(): bool {
+		return $this->getMigrationWorkflow() === self::migrationWorkflowAgentTools;
+	}
+
+	/**
 	 * Build the system prompt
 	 *
 	 * @param bool $readOnly
@@ -869,38 +899,56 @@ class AgentToolsEngineer extends AgentToolsHelper {
 			"Site: $siteUrl | ProcessWire $pwVersion | Timezone: $timezone\n\n" .
 
 			"For informational requests, respond with clear concise text. Use the eval_php tool when " .
-			"you need to query live site data.\n\n" .
+			"you need to query live site data.\n\n";
 
-			"For requests that make changes to the site (creating or modifying fields, templates, pages, " .
-			"content, etc.), always use the save_migration tool rather than applying changes directly via " .
-			"eval_php. This allows the user to review changes before they are applied. " .
-			"Do not say that you saved, created, modified, applied, or deleted something unless you " .
-			"actually used the appropriate tool and received a successful result. " .
-			"Migrations can contain any PHP including file operations — use save_migration to create or " .
-			"modify template files, config files, or other site assets that would otherwise require manual creation. " .
-			"When writing files in a migration, prefer \$files->filePutContents(\$path, \$content) over " .
-			"file_put_contents() as it respects the site's configured file permissions. " .
-			"Before writing a migration, use eval_php to verify current state (e.g. whether a field or " .
-			"template already exists) so the migration is accurate. " .
-			"Combine all changes for a single request into one migration file. Do not create multiple " .
-			"migrations for a single request unless the user explicitly asks for them, or unless the " .
-			"changes are technically unrelated and must be applied independently. " .
-			"Write migrations defensively and idempotently: check whether fields, templates, pages, files, " .
-			"or settings already exist before creating, modifying, or deleting them, so the migration can " .
-			"be safely re-run. Order dependent operations carefully. Echo concise success/skip messages " .
-			"for important actions so admin/CLI output is useful. Do not suppress unexpected errors; " .
-			"let them throw or explicitly throw a WireException. If unsure about a ProcessWire API method, " .
-			"option, or current best practice, use api_docs or read_file before writing the migration.\n\n" .
-			"After direct writes, verify important final state before reporting it, especially page id, " .
-			"path, template, and published/unpublished status. New ProcessWire pages are published by " .
-			"default unless Page::statusUnpublished is explicitly added. When writing content that " .
-			"contains literal PHP examples like \$pages->get(), use nowdoc/heredoc, single-quoted strings, " .
-			"or escaped dollar signs so variables are not interpolated inside double-quoted strings.\n\n" .
-			"For common field/template migrations, use a check/create/add pattern: get the field or " .
-			"template by name, create only if missing, check the template fieldgroup before adding a " .
-			"field, insert fields in the requested order when possible, save only changed objects, " .
-			"and echo concise created/skipped messages.\n\n" .
+		if($this->usesNativeMigrations()) {
+			$prompt .=
+				"For requests that make changes to the site (creating or modifying fields, templates, pages, " .
+				"content, etc.), always use the save_migration tool rather than applying changes directly via " .
+				"eval_php. This allows the user to review changes before they are applied. " .
+				"Do not say that you saved, created, modified, applied, or deleted something unless you " .
+				"actually used the appropriate tool and received a successful result. " .
+				"Migrations can contain any PHP including file operations — use save_migration to create or " .
+				"modify template files, config files, or other site assets that would otherwise require manual creation. " .
+				"When writing files in a migration, prefer \$files->filePutContents(\$path, \$content) over " .
+				"file_put_contents() as it respects the site's configured file permissions. " .
+				"Before writing a migration, use eval_php to verify current state (e.g. whether a field or " .
+				"template already exists) so the migration is accurate. " .
+				"Combine all changes for a single request into one migration file. Do not create multiple " .
+				"migrations for a single request unless the user explicitly asks for them, or unless the " .
+				"changes are technically unrelated and must be applied independently. " .
+				"Write migrations defensively and idempotently: check whether fields, templates, pages, files, " .
+				"or settings already exist before creating, modifying, or deleting them, so the migration can " .
+				"be safely re-run. Order dependent operations carefully. Echo concise success/skip messages " .
+				"for important actions so admin/CLI output is useful. Do not suppress unexpected errors; " .
+				"let them throw or explicitly throw a WireException. If unsure about a ProcessWire API method, " .
+				"option, or current best practice, use api_docs or read_file before writing the migration.\n\n" .
+				"After direct writes, verify important final state before reporting it, especially page id, " .
+				"path, template, and published/unpublished status. New ProcessWire pages are published by " .
+				"default unless Page::statusUnpublished is explicitly added. When writing content that " .
+				"contains literal PHP examples like \$pages->get(), use nowdoc/heredoc, single-quoted strings, " .
+				"or escaped dollar signs so variables are not interpolated inside double-quoted strings.\n\n" .
+				"For common field/template migrations, use a check/create/add pattern: get the field or " .
+				"template by name, create only if missing, check the template fieldgroup before adding a " .
+				"field, insert fields in the requested order when possible, save only changed objects, " .
+				"and echo concise created/skipped messages.\n\n";
+		} else {
+			$prompt .=
+				"This installation uses RockMigrations as its migration workflow. For requests that make " .
+				"repeatable changes to the site (creating or modifying fields, templates, pages, roles, " .
+				"permissions, module config, content that should transfer, etc.), do not apply changes " .
+				"directly via eval_php and do not create native AgentTools migration files. Use eval_php, " .
+				"site_info, read_file, and api_docs to inspect current state, then tell the caller to use " .
+				"the processwire-rockmigrations skill and edit RockMigrations files such as " .
+				"site/RockMigrations/{fields,templates,roles,permissions}/..., " .
+				"site/modules/Site/Site.migrate.php, or PageClass/MagicPage migrations. " .
+				"If the user asks you to make the change yourself, explain that this Engineer is in " .
+				"RockMigrations guidance mode and cannot write the RockMigrations files directly. " .
+				"Verify current state before recommending changes, and ask for clarification when the " .
+				"request is ambiguous.\n\n";
+		}
 
+		$prompt .=
 			"ProcessWire API variables available to eval_php: $apiVars.\n\n" .
 
 			"Use the site_info tool to retrieve information about this site. " .
@@ -1261,6 +1309,9 @@ class AgentToolsEngineer extends AgentToolsHelper {
 				"Do not call save, delete, clone, move, publish, unpublish, file write, module config, " .
 				"or other mutation APIs.";
 		}
+		if(!$this->usesNativeMigrations()) {
+			$evalDesc .= " This installation uses RockMigrations for repeatable changes; use eval_php for inspection and verification only, not schema/content mutations.";
+		}
 
 		$migrationDesc =
 			"Save a PHP migration file for the user to review and apply. Use for any changes to the site. " .
@@ -1388,7 +1439,13 @@ class AgentToolsEngineer extends AgentToolsHelper {
 				['name' => 'read_file', 'description' => $readFileDesc, 'input_schema' => $readFileParams],
 				['name' => 'api_docs', 'description' => $apiDocsDesc, 'input_schema' => $apiDocsParams],
 			];
-			if(!$readOnly && !$dryRun) $tools[] = ['name' => 'save_migration', 'description' => $migrationDesc, 'input_schema' => $migrationParams];
+			if(!$readOnly && !$dryRun && $this->usesNativeMigrations()) {
+				array_splice($tools, 1, 0, [[
+					'name' => 'save_migration',
+					'description' => $migrationDesc,
+					'input_schema' => $migrationParams,
+				]]);
+			}
 			if($includeMemoryTool) $tools[] = ['name' => 'save_memory', 'description' => $memoryDesc, 'input_schema' => $memoryParams];
 			if($includeSuspiciousTool) $tools[] = ['name' => 'report_suspicious_prompt', 'description' => $suspiciousDesc, 'input_schema' => $suspiciousParams];
 		} else {
@@ -1398,7 +1455,12 @@ class AgentToolsEngineer extends AgentToolsHelper {
 				['type' => 'function', 'function' => ['name' => 'read_file', 'description' => $readFileDesc, 'parameters' => $readFileParams]],
 				['type' => 'function', 'function' => ['name' => 'api_docs', 'description' => $apiDocsDesc, 'parameters' => $apiDocsParams]],
 			];
-			if(!$readOnly && !$dryRun) $tools[] = ['type' => 'function', 'function' => ['name' => 'save_migration', 'description' => $migrationDesc, 'parameters' => $migrationParams]];
+			if(!$readOnly && !$dryRun && $this->usesNativeMigrations()) {
+				array_splice($tools, 1, 0, [[
+					'type' => 'function',
+					'function' => ['name' => 'save_migration', 'description' => $migrationDesc, 'parameters' => $migrationParams],
+				]]);
+			}
 			if($includeMemoryTool) $tools[] = ['type' => 'function', 'function' => ['name' => 'save_memory', 'description' => $memoryDesc, 'parameters' => $memoryParams]];
 			if($includeSuspiciousTool) $tools[] = ['type' => 'function', 'function' => ['name' => 'report_suspicious_prompt', 'description' => $suspiciousDesc, 'parameters' => $suspiciousParams]];
 		}

@@ -1,6 +1,6 @@
 # Agent Tools module for ProcessWire
 
-Enables AI coding agents to access ProcessWire’s API. Also provides a content migration system and a page-editor AI assistant.
+Enables AI coding agents to access ProcessWire’s API, inspect site structure, and work with the browser/CLI Engineer. This fork optimizes agent-facing workflows for RockMigrations.
 
 ## Introduction
 
@@ -18,35 +18,35 @@ accompanying ProcessAgentTools module was developed entirely by Claude Code.
 
 While working with Claude Code, I asked what would be helpful for them in working with 
 ProcessWire, and this module is the result. Claude needed a way to quickly access the 
-ProcessWire API from the command line, and this module provides 3 distinct ways for 
-Claude to do so. AI agents can also use the command line to create migrations, generate 
-JSON sitemaps that provide an overview of the entire ProcessWire installation, install
-AI agent skills into your ProcessWire installation. Further, AI agents connected through
-the command line interface (CLI) can do anything that the ProcessWire API can do. 
+ProcessWire API from the command line, and this module provides several ways for
+Claude to do so. AI agents can also use the command line to generate JSON sitemaps
+that provide an overview of the entire ProcessWire installation and install AI agent
+skills into your ProcessWire installation. Further, AI agents connected through the
+command line interface (CLI) can inspect and verify anything that the ProcessWire API
+can access.
 
 ### Admin tools for you
 
 Also packaged with the AgentTools module is the ProcessAgentTools module. This provides an
 admin application (Setup > Agent Tools), currently with the following features:
 
-- **Engineer**: A natural language AI interface to your site. Ask questions, request changes,
-  or have it create migrations — all from your browser. The Engineer has six tools available
-  to it: `eval_php` (query live site data), `save_migration` (create a migration for review),
-  `site_info` (fetch the site's page tree or fields/templates schema on demand), `read_file`
-  (read local site files), `api_docs` (discover and retrieve ProcessWire API documentation on demand),
-  and `save_memory` (save durable site/workflow preferences when explicitly asked). The Engineer
-  supports conversation history so it can refer back to earlier exchanges in the same session,
-  plus optional persistent memory that is included in future Engineer and Task requests.
-  Multiple AI providers and models can be configured and switched between from a Control room
-  in the Engineer form.
+- **Engineer**: A natural language AI interface to your site. Ask questions, inspect state,
+  or request RockMigrations guidance — all from your browser. The Engineer can query live
+  site data, fetch the site's page tree or fields/templates schema on demand, read local
+  site files, discover ProcessWire API documentation, and save durable site/workflow
+  preferences when explicitly asked. The Engineer supports conversation history so it can
+  refer back to earlier exchanges in the same session, plus optional persistent memory that
+  is included in future Engineer and Task requests. Multiple AI providers and models can be
+  configured and switched between from a Control room in the Engineer form.
 
-  The Engineer is also available from the command line via `--at-engineer "REQUEST"` and
-  `--at-engineer-migrate "REQUEST"`, allowing AI agents to spawn it as a ProcessWire-specialist
-  sub-agent. See the [CLI reference](#cli-reference) below and `AGENTS.md` for details.
+  The Engineer is also available from the command line via `--at-engineer "REQUEST"`,
+  allowing AI agents to spawn it as a ProcessWire-specialist sub-agent. Native AgentTools
+  migration creation remains available only as an explicit compatibility workflow. See the
+  [CLI reference](#cli-reference) below and `AGENTS.md` for details.
 
-- **Migrations**: This tool enables you to create, apply, list, view, and delete migrations
-  that were created by the Engineer or by your AI agent using the command line tools of
-  this module.
+- **Migrations**: Native AgentTools migrations can still be listed, viewed, applied,
+  exported, imported, and deleted for compatibility. For normal repeatable site changes in
+  this fork, prefer RockMigrations and use AgentTools for inspection and verification.
 
 - **Tasks**: Run predefined Engineer workflows from the admin, such as security scans,
   log reviews, SEO/content reviews, migration reviews, accessibility checks, and static
@@ -164,7 +164,7 @@ Claude Code (below).
 
 The module ships with an installable agent skill in
 `installable-skills/processwire-agenttools/` — a set of markdown docs that teach
-AI coding agents how to use the CLI and migration system. Agents that support the
+AI coding agents how to use the CLI with the RockMigrations workflow. Agents that support the
 `.agents/skills/` convention will discover it automatically once installed.
 
 To install the skill to your project root, check "Install agent skill to project" in the module
@@ -177,67 +177,42 @@ contains `/site/modules/AgentTools/`, the module's root `AGENTS.md` and packaged
 `/site/modules/AgentTools/installable-skills/processwire-agenttools/` should be treated as the
 current source of truth.
 
-### Migrations feature
+### RockMigrations workflow
 
-This module provides a migrations feature that has an AI-based workflow. Two different kinds of workflows are available:
+This fork uses **RockMigrations** as the default repeatable-change workflow.
+Use AgentTools for live ProcessWire access, site discovery, Engineer guidance,
+and verification. Use RockMigrations files for changes that should transfer
+across environments.
 
-1. You can have AgentTools installed in a local development (dev server) environment with Claude Code or other AI agent available. There 
-   would be a corresponding production (live server) environment that also has the AgentTools module installed. Whether 
-   an AI agent is available there or not is optional. Claude Code (or other CLI AI agent tool) is needed to create migrations, but not 
-   to apply them.
+Recommended agent workflow:
 
-2. You can also create migrations directly from the admin, available from Setup > Agent Tools > Migrations.
-   In order to do this, you must have an Anthropic, OpenAI or OpenAI compatible API key populated in the AgentTools module settings.
+1. Inspect current state with AgentTools CLI/schema output.
+2. Load and follow the `processwire-rockmigrations` skill.
+3. Create or update RockMigrations files:
+   - `site/RockMigrations/{fields,templates,roles,permissions}/...`
+   - `site/modules/Site/Site.migrate.php`
+   - PageClass/MagicPage migrations when appropriate
+4. Run RockMigrations, usually:
+   ```bash
+   ddev php site/modules/RockMigrations/migrate.php
+   ```
+5. Verify with AgentTools CLI/schema output.
+6. Report changed files and verification output.
 
-Either method words to create migrations, but the first method (CLI like Code Claude) generally has more context and also has
-the ability to ask you follow-up questions if it's not clear about anything. 
+Use RockMigrations for fields, templates, fieldgroups, roles, permissions,
+module config, and repeatable structural pages. Ask the user before treating
+content pages as seed data.
 
-Here is an example of a basic prompt that you might use to create a migration:
+### Native AgentTools migrations compatibility
 
-> Please create a new template named hello-world that can only be used for one page. Add the title and body 
-> fields to it. Then create a new page using this new template and with the homepage as its parent. 
-> Name it "hello", set the "title" to "Hello World" and add 3 html paragraphs of random placeholder/greeking 
-> text as the "body". Keep it unpublished.
+AgentTools still includes its native migration system. It writes timestamped PHP
+files to `site/assets/at/migrations/` and tracks applied files in module config.
+The admin UI can list, view, apply, delete, export, and import those migrations,
+and the CLI exposes `--at-migrations-*` plus `--at-engineer-migrate`.
 
-We've got something sneaky in that prompt "…can only be used for one page." Claude is smart, and may 
-ask you questions before making the changes and creating the migration. In my case it asked me: "By one 
-page, do you mean that the template should have the noParents option set to -1?" The answer is yes.
-
-Whether using the CLI or the admin, once your AI agent has finished its work in your dev site you'll 
-see it as a migration in Setup > Agent Tools. When you are ready to apply it, click the Apply button.
-Confirm that it worked correctly, and then you can copy/rsync/ftp the migrations to the production server 
-in the same directory: `/site/assets/at/migrations/`. This is also something some AI agents can do if you 
-are comfortable with it, and you've given them access to.
-
-However the migration files are copied to the production server, they can be applied from the command 
-line, or from the admin in Setup > Agent Tools. If using the admin, you'll see a list of migrations 
-along with an option to apply them. If you prefer to use the command line interface, see the migrations
-command reference in the CLI reference section (below). 
-
-Once a migration has been applied, it will show as "applied" in your admin rather than "pending". 
-Though note that the AI agent should write the migrations in a way that means they can be re-applied without issue, 
-and simply report "not necessary to apply."
-
-Tip: when asking an AI agent to add a new page in ProcessWire that has significant content (like a large "body") field
-ask them if they would prefer the content in separate prompts, or all in one. When I posted a blog post,
-Claude said they preferred it in separate prompts, like this:
-```
-name: processwire-and-ai
-
-title: ProcessWire and AI
-
-date: today
-
-summary: How ProcessWire works with AI, my experience learning…
-
-body: In this post I wanted to talk a little bit about the state of…
-```
-See the resulting post here: [ProcessWire and AI](https://processwire.com/blog/posts/processwire-and-ai/). 
-
-#### Please note
-
-- This migrations system is somewhat experimental and not intended to replace a mature system like RockMigrations.
-- File-based assets are not yet supported by migrations. 
+Keep this feature for compatibility with AgentTools-native projects, but do not
+use it for normal site changes in this RockMigrations-focused fork unless the
+user explicitly asks for native AgentTools migrations.
 
 ## Background jobs with cron
 
@@ -329,19 +304,22 @@ it is `FcgidIOTimeout`.
 
 All commands are run from your ProcessWire root directory (where `index.php` lives). Note that most of these CLI commands are intended to be run by AI agents on your behalf, but are documented here for reference.
 
-### Migration commands
+### Native AgentTools migration commands
+
+These commands are compatibility features for AgentTools-native projects. In this
+fork, prefer RockMigrations for normal repeatable site changes.
 
 | Command | Description |
 |---------|-------------|
-| `php index.php --at-migrations-apply` | Apply all pending migrations |
-| `php index.php --at-migrations-list` | List all migrations and their status (applied/pending) |
-| `php index.php --at-migrations-test` | Preview pending migrations without applying them |
+| `php index.php --at-migrations-apply` | Apply all pending native AgentTools migrations |
+| `php index.php --at-migrations-list` | List native AgentTools migrations and their status (applied/pending) |
+| `php index.php --at-migrations-test` | Preview pending native AgentTools migrations without applying them |
 
 ### Site map commands
 
 The site map gives AI agents a complete JSON overview of your ProcessWire installation —
-templates, fields, pages, and modules — so they can answer questions and create accurate
-migrations without querying the database on every request.
+templates, fields, pages, and modules — so they can answer questions and plan accurate
+RockMigrations changes without querying the database on every request.
 
 | Command | Description |
 |---------|-------------|
@@ -350,9 +328,8 @@ migrations without querying the database on every request.
 
 Run `--at-sitemap-generate` at the start of a session on an unfamiliar site. Run
 `--at-sitemap-generate-schema` when you need full field configuration details, per-template
-field context overrides, or detailed template settings — useful when creating migrations
-that depend on existing configuration. The admin Engineer regenerates these automatically
-after applying migrations.
+field context overrides, or detailed template settings — useful when planning RockMigrations
+changes that depend on existing configuration.
 
 ### API access commands
 
@@ -364,8 +341,8 @@ from the command line without needing to enter an interactive session.
 | `php index.php --at-eval 'CODE'` | Evaluate a PHP expression with full ProcessWire API access |
 | `echo 'CODE' \| php index.php --at-stdin` | Evaluate multi-line PHP code piped from stdin |
 | `php index.php --at-cli` | Open an interactive agent CLI session |
-| `php index.php --at-engineer "REQUEST"` | Ask the Engineer a question or request a change |
-| `php index.php --at-engineer-migrate "REQUEST"` | Have the Engineer create a migration; outputs the migration file path |
+| `php index.php --at-engineer "REQUEST"` | Ask the Engineer a question or request guidance |
+| `php index.php --at-engineer-migrate "REQUEST"` | Compatibility: create a native AgentTools migration when that workflow is enabled |
 | `php index.php --at-engineer-site-info pages\|schema\|modules [--refresh]` | Print generated site info JSON without calling an AI provider |
 | `php index.php --at-engineer-api-docs-list` | List available ProcessWire API.md documentation without calling an AI provider |
 | `php index.php --at-engineer-api-docs-get NAME` | Print a ProcessWire API.md documentation file without calling an AI provider |
@@ -395,21 +372,11 @@ and run it, with full access to all ProcessWire API variables (`$pages`, `$templ
 
 ---
 
-## Migration file reference
+## Native AgentTools migration file reference
 
-### Workflow
-
-AgentTools uses a **migration-first** workflow:
-
-1. Ask Claude to create a migration for the change you want
-2. Claude writes the migration file and applies it on your development site
-3. Claude confirms the output and that it applied successfully
-4. You transfer the migration file to other environments (rsync, ftp, git, etc.)
-5. Apply it there via CLI or via **Setup > Agent Tools** in the admin
-
-Always apply and verify migrations on your development environment before
-transferring them. If something goes wrong, it's much easier to fix on
-development than on a live server.
+This reference documents the built-in AgentTools migration format for compatibility
+with AgentTools-native projects. For this fork's normal workflow, use RockMigrations
+instead.
 
 ### File naming
 

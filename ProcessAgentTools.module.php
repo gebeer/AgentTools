@@ -409,15 +409,22 @@ class ProcessAgentTools extends Process {
 		$f->attr('rows', 5);
 		$f->val($prefill);
 
+		$nativeMigrations = (string) $this->at->get('engineer_migration_workflow') === 'agenttools';
 		if($forMigration) {
-			$f->label = $this->label('ask-create-migration');
-			$f->attr('placeholder', $this->label('example-add-summary-field'));
-			$this->message($this->label('example-add-summary-field'));
+			if($nativeMigrations) {
+				$f->label = $this->_('Ask the site engineer to create a new native AgentTools migration');
+				$f->attr('placeholder', $this->_('Example: Create a Text field named summary with the label Summary and add it to the basic-page template.'));
+				$this->message($this->_('Example: Create a Text field named summary with the label Summary and add it to the basic-page template.'));
+			} else {
+				$f->label = $this->_('Ask the site engineer for RockMigrations guidance');
+				$f->attr('placeholder', $this->_('Example: Plan a RockMigrations change that adds a summary field to basic-page.'));
+				$this->message($this->_('This Engineer is configured for RockMigrations guidance. It will not create native AgentTools migration files.'));
+			}
 		} else {
 			$f->label = $this->_('Ask the site engineer');
-			$f->description =
-				$this->_('Ask a question about your site, or request a change.') . ' ' .
-				$this->_('Changes are saved as migration files for your review before being applied.');
+			$f->description = $nativeMigrations ?
+				$this->_('Ask a question about your site, or request a change. Changes are saved as native AgentTools migration files for your review before being applied.') :
+				$this->_('Ask a question about your site, or request guidance. Repeatable changes should be implemented with RockMigrations.');
 			$f->detail = $this->description('engineer');
 		}
 
