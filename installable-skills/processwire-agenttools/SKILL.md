@@ -1,11 +1,12 @@
 ---
 name: processwire-agenttools
-description: Provides ProcessWire CLI and migration workflows for sites using the AgentTools module. Use when querying the ProcessWire API, making repeatable site changes, or transferring changes across environments.
+description: Provides ProcessWire CLI access and RockMigrations-oriented workflows for sites using the AgentTools module. Use when querying the ProcessWire API, inspecting site state, verifying changes, or planning repeatable ProcessWire changes with RockMigrations.
 ---
 
 # ProcessWire AgentTools
 
-CLI access to the ProcessWire API and a file based migration system.
+CLI access to the ProcessWire API, site discovery helpers, and Engineer guidance.
+This project uses **RockMigrations** for repeatable site changes.
 
 ## Source Of Truth
 
@@ -16,8 +17,8 @@ development and current operating instructions. The packaged source files in
 newer than this installed copy.
 
 Use this installed skill as a portable helper when the module checkout is not yet
-known or available, or when you only need the standard ProcessWire CLI and
-migration workflow.
+known or available, or when you only need standard ProcessWire CLI access and
+RockMigrations-oriented guidance.
 
 The module registers `$at` as a ProcessWire API variable (`wire('at')`).
 
@@ -29,19 +30,19 @@ Run from the ProcessWire root directory (where `index.php` lives).
 |---------|---------|
 | `php index.php --at-eval 'CODE'` | Evaluate a PHP expression with full PW API access |
 | `echo 'CODE' \| php index.php --at-stdin` | Evaluate multi-line PHP code from stdin |
-| `php index.php --at-migrations-apply` | Apply all pending migrations |
-| `php index.php --at-migrations-list` | List migrations and their status |
-| `php index.php --at-migrations-test` | Preview pending without applying |
 | `php index.php --at-sitemap-generate` | Generate site map JSON to `site/assets/at/site-map.json` |
 | `php index.php --at-sitemap-generate-schema` | Generate schema JSON to `site/assets/at/site-map-schema.json` |
 | `php index.php --at-cli` | Open interactive agent CLI session |
-| `php index.php --at-engineer "REQUEST"` | Ask the Engineer a question or request a change |
-| `php index.php --at-engineer-migrate "REQUEST"` | Have the Engineer create a migration; outputs the migration file path |
+| `php index.php --at-engineer "REQUEST"` | Ask the Engineer a question or request guidance |
 | `php index.php --at-engineer-site-info pages\|schema\|modules [--refresh]` | Print generated site info JSON without calling an AI provider |
 | `php index.php --at-engineer-api-docs-list` | List available ProcessWire API.md documentation without calling an AI provider |
 | `php index.php --at-engineer-api-docs-get NAME` | Print a ProcessWire API.md documentation file without calling an AI provider |
 | `php index.php --at-engineer-api-docs-search TERM` | Search ProcessWire API.md documentation without calling an AI provider |
 | `php index.php --at-engineer-read-file PATH` | Read a local site file without calling an AI provider |
+
+Native AgentTools migration commands (`--at-migrations-*` and
+`--at-engineer-migrate`) remain available for compatibility, but they are not the
+default migration workflow for this project.
 
 ## Getting oriented on a new site
 
@@ -64,7 +65,8 @@ php index.php --at-sitemap-generate-schema
 
 Then read `site/assets/at/site-map-schema.json`. The file contains a top-level
 `_readme` key with instructions for interpreting the schema; read it before using
-the data.
+the data. This schema is useful when planning RockMigrations changes that depend
+on existing configuration.
 
 ## Compatibility wrapper
 
@@ -78,20 +80,18 @@ when you are specifically debugging wrapper behavior.
 ```bash
 bash .agents/skills/processwire-agenttools/scripts/pw-at.sh eval 'CODE'
 bash .agents/skills/processwire-agenttools/scripts/pw-at.sh stdin
-bash .agents/skills/processwire-agenttools/scripts/pw-at.sh migrations-apply
+bash .agents/skills/processwire-agenttools/scripts/pw-at.sh sitemap-generate-schema
 ```
 
 ## Engineer
 
 The Engineer is available in the ProcessWire admin at
-**Setup > Agent Tools > Engineer** and from the command line. It can use
-`eval_php`, `save_migration`, `site_info`, `read_file`, `api_docs`, and `save_memory`.
-It supports multi-turn conversation history within a session and optional persistent memory
-when the user explicitly asks it to remember durable site/workflow preferences.
+**Setup > Agent Tools > Engineer** and from the command line. In RockMigrations
+mode it should provide guidance and current-state inspection, not create native
+AgentTools migration files.
 
 ```bash
 php index.php --at-engineer "How many published pages does this site have?"
-php index.php --at-engineer-migrate "Add a text field called subtitle to the blog-post template"
 php index.php --at-engineer-api-docs-list
 php index.php --at-engineer-site-info schema
 ```
@@ -102,25 +102,28 @@ Optional flags go before the request string:
 - `--readonly` — allow queries only; available for `--at-engineer`
 - `--verbose` — write tool call names to stderr as they execute
 
-When a migration is created, the response is followed by a
-`Migration: /full/path/to/file.php` line.
+Use `--at-engineer-migrate` only when the user explicitly requests native
+AgentTools migrations and the Engineer is configured for that compatibility
+workflow.
 
 ## Available API variables
 
-All CLI modes and migrations share the same variables:
+All CLI modes share the same variables:
 `$pages`, `$templates`, `$fields`, `$fieldgroups`, `$modules`, `$config`, `$sanitizer`, `$users`, `$roles`, `$permissions`, `$session`, `$database`, `$cache`, `$log`, `$files`, `$at`
 
-## When to use Migrations vs CLI
+## When to use RockMigrations vs CLI
 
-For one-off reads or changes, use the CLI. For environment-transferable changes, create a migration. Use `cli` only for multi-step interactive work.
+For one-off reads or verification, use AgentTools CLI. For environment-transferable
+changes, create or update RockMigrations files via the `processwire-rockmigrations`
+skill.
 
 | Operation | Default path | Reason |
 |-----------|-------------|--------|
-| Queries, listing, inspecting | CLI | No state change to transfer |
-| Templates, fields, fieldgroups | Migration | Schema should match across environments |
+| Queries, listing, inspecting | AgentTools CLI | No state change to transfer |
+| Templates, fields, fieldgroups | RockMigrations | Schema should match across environments |
 | Pages | Ask the user | Could be seed data or environment-specific |
-| Module config, roles, permissions | Migration | Config drift causes subtle bugs |
-| Debugging, testing | CLI | Throwaway by nature |
+| Module config, roles, permissions | RockMigrations | Config drift causes subtle bugs |
+| Debugging, testing | AgentTools CLI | Throwaway by nature |
 
 ## Environment overrides
 
@@ -131,6 +134,6 @@ These apply only to the compatibility wrapper:
 
 ## Reference
 
-- **Running PHP against the ProcessWire API** (queries, one-off changes, testing) — read [cli.md](cli.md)
-- **Creating migrations** (repeatable, transferable changes across environments) — read [migrations.md](migrations.md)
+- **Running PHP against the ProcessWire API** (queries, one-off checks, testing) — read [cli.md](cli.md)
+- **RockMigrations workflow** (repeatable, transferable changes across environments) — read [migrations.md](migrations.md)
 - **Validating the wrapper layer** (only when debugging portability/transport issues) — read [testing.md](testing.md)

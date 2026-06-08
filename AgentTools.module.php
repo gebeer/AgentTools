@@ -4,7 +4,7 @@
  * AgentTools
  *
  * Enables AI coding agents to access ProcessWire's API via CLI, and provides
- * a database migration system for transferring changes across environments.
+ * site discovery helpers, Engineer tooling, and native migration compatibility.
  *
  * Copyright 2026 Ryan Cramer with help from Claude (Anthropic), GPT 5.5 Codex
  *
@@ -44,7 +44,7 @@ class AgentTools extends WireData implements Module, ConfigurableModule {
 	public static function getModuleInfo() {
 		return [
 			'title' => 'Agent Tools',
-			'summary' => "Enables AI coding agents to access ProcessWire's API and provides a database migration system.",
+			'summary' => "Enables AI coding agents to access ProcessWire's API with site discovery, Engineer tooling, and native migration compatibility.",
 			'icon' => 'at',
 			'version' => 22,
 			'author' => 'Ryan Cramer, Claude (Anthropic), GPT 5.5 Codex',

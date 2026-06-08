@@ -127,7 +127,7 @@ class ProcessAgentTools extends Process {
 			case 'agent-tools': return $this->_('Agent Tools');
 			case 'agents': return $this->_('Agents');
 			case 'applied': return $this->ukLabel($this->_('Applied'), 'success');
-			case 'ask-create-migration': return $this->_('Ask the engineer to create a migration');
+			case 'ask-create-migration': return $this->_('Ask the engineer for migration guidance');
 			case 'back': return $this->_('Back');
 			case 'back-to-engineer': return $this->_('Back to Engineer');
 			case 'back-to-jobs': return $this->_('Back to Jobs');
@@ -142,7 +142,7 @@ class ProcessAgentTools extends Process {
 			case 'email-error': return $this->_('Email error');
 			case 'engineer': return $this->_('Engineer');
 			case 'error': return $this->_('Error');
-			case 'example-add-summary-field': return $this->_('Example: Create a Text field named summary with the label Summary and add it to the basic-page template.');
+			case 'example-add-summary-field': return $this->_('Example: Plan a RockMigrations change that adds a Summary text field to the basic-page template.');
 			case 'export': return $this->_('Export');
 			case 'export-checked': return $this->_('Export checked');
 			case 'failed': return $this->ukLabel($this->_('Failed'), 'danger');
@@ -223,11 +223,11 @@ class ProcessAgentTools extends Process {
 	public function description($name) {
 		switch($name) {
 			case 'migrations': return
-				$this->_('Migrations are scripts that you can run to automatically make changes on your site.') . ' ' .
-				$this->_('Use this tool to apply, view, create or delete migrations.');
+				$this->_('Native AgentTools migrations are compatibility scripts that can automatically make changes on your site.') . ' ' .
+				$this->_('For normal repeatable changes in this fork, prefer RockMigrations.');
 			case 'engineer': return
 				$this->_('Your site engineer can tell you everything there is to know about your ProcessWire installation.') . ' ' .
-				$this->_('Engineer can make changes, perform web development tasks, create migrations, and more.') . ' ' .
+				$this->_('In RockMigrations mode, Engineer provides inspection and guidance; repeatable changes should be implemented with RockMigrations.') . ' ' .
 				$this->_('Please be sure you have full backups of your site and database before asking Engineer to make changes to your site.');
 			case 'agents': return
 				$this->_('Manage all your agents in one place. Configure up to ten agents with models, API keys, and endpoint URLs.') . ' ' .

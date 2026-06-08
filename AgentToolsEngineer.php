@@ -4,9 +4,9 @@
  * Agent Tools Engineer
  *
  * Provides a natural language interface to the ProcessWire API via an AI
- * assistant. Supports informational queries (answered via eval_php tool)
- * and site changes (saved as migration files for user review via
- * save_migration tool).
+ * assistant. Supports informational queries, site inspection, and
+ * RockMigrations guidance by default. Native AgentTools migration creation
+ * remains available as an explicit compatibility workflow.
  *
  * Supports Anthropic (Claude) and OpenAI-compatible providers.
  *
@@ -983,7 +983,7 @@ class AgentToolsEngineer extends AgentToolsHelper {
 
 			"If a request is ambiguous, incomplete, or lacks sufficient context to act on confidently " .
 			"(for example, it references previous context you don't have), ask the user for clarification " .
-			"rather than guessing. Do not attempt to execute or create a migration for an ambiguous request.";
+			"rather than guessing. Do not attempt to execute changes or create native AgentTools migrations for an ambiguous request.";
 
 		if($readOnly) $prompt .=
 			"\n\nYou are operating in read-only mode. You can answer questions, explain how things work, " .
