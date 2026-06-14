@@ -79,15 +79,29 @@ grep -qF 'migrate && !$this->usesNativeMigrations()' AgentToolsEngineer.php
 - The agent's role in RM mode is stated: inspect/verify via `eval_php` & friends, delegate
   writes to RM; it does **not** author migration files itself in RM mode.
 
-**Must NEVER appear** (hard scrub — these are the leak-back / drift signatures):
+**The distinguishing test** (resolves every borderline call): does the text **teach how to
+use** native migration tooling, or merely **prohibit the agent from using it**?
+*Teaching* = banned. *Prohibiting* = permitted (it IS the must-hold role statement above).
 
-- **Any instructional coverage of native migration tooling** — no how-tos, examples,
-  command lines, parameter docs, or "when to use" guidance for `save_migration`,
-  `--at-engineer-migrate`, or native AgentTools migration files. The *only* permitted
-  native reference is a single non-instructional sentence noting that an opt-in native
-  mode exists in module config. Demoted-but-still-documented framings (e.g. "available
-  for compatibility, do not use unless asked" shown alongside the actual command) are
-  **violations**, not exceptions.
+**Permitted — do NOT flag:**
+
+- **Prohibitive role-statements**, e.g. "in RM mode the agent does **not** author native
+  migration files." Naming "native migration files" inside a *don't-do-this* clause teaches
+  nothing about native usage — keep it. (Dropping the "native" qualifier is an optional tidy,
+  never a required fix.)
+- **Exactly one** non-instructional opt-in sentence, in **`README.md` only** (user-facing
+  config docs), e.g. "An opt-in native AgentTools migration mode is available in the module
+  configuration." No command names, paths, or usage. **Agent-facing docs** (`AGENTS.md`,
+  `agent_cli.md`, `installable-skills/*`) carry **zero** native references.
+
+**Must NEVER appear** (hard scrub — leak-back / drift signatures):
+
+- **Any instructional coverage of native migration tooling** — how-tos, examples, command
+  lines, parameter docs, or "when to use" guidance for `save_migration`,
+  `--at-engineer-migrate`, `--at-migrations-*`, or native migration-file authoring (naming
+  conventions, file templates, the migrations directory path, the admin Setup entry point).
+  Demoted-but-documented framings ("available for compatibility, do not use unless asked"
+  beside the actual command) are **violations**, not exceptions.
 - Prose that contradicts the code: e.g. text praising/instructing a tool the overlay
   withholds, or describing native migrations as the default.
 - Upstream-introduced passages (merged clean, no conflict) that reintroduce native

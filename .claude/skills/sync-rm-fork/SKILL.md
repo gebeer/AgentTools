@@ -87,6 +87,23 @@ Aggregate findings into a short report. Present proposed edits for **human appro
 git push --force-with-lease origin feature/rockmigrations-agent-instructions
 ```
 
+## Full-state audit mode (no upstream delta)
+
+Phases 0–4 are **diff-driven** — they audit only `OLD..NEW`, so Phase 0 exits early when
+upstream is unchanged. That is correct for routine syncs but **blind to pre-existing
+fork debt** and to drift accumulated before the invariants tightened.
+
+Run a **full-state audit** instead when: doing an initial/one-time debt sweep, after a
+material change to `FORK-INVARIANTS.md`, or as a periodic deep check. Procedure:
+
+- Skip Phase 0's early-exit. Audit the **entire current content** of every overlay-touched
+  file (not a diff): `README.md`, `AGENTS.md`, `agent_cli.md`,
+  `installable-skills/processwire-agenttools/{SKILL.md,migrations.md}`, plus
+  `AgentToolsEngineer.php` for code invariants.
+- Use the Phase 3 subagent prompt, but state the scope is **full-state** (whole file), and
+  fan out one subagent per file in parallel (Opus).
+- Still **report-only** → human-approved fixes → Phase 2 guardrails → push.
+
 ## Common mistakes
 
 - Fetching before capturing `OLD` → audit scope lost.
