@@ -1,0 +1,7 @@
+# Fork-maintenance only (carried on feature/rockmigrations-agent-instructions,
+# never on main). Upstream's README.md carries incidental single trailing spaces.
+# Editors that trim trailing whitespace on save re-strip them, which collides with
+# upstream edits to the same lines and creates a recurring conflict on every rebase.
+# Keep markdown trailing whitespace intact so our README matches upstream's bytes.
+[*.md]
+trim_trailing_whitespace = false
