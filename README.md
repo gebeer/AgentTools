@@ -40,13 +40,11 @@ admin application (Setup > Agent Tools), currently with the following features:
   configured and switched between from a Control room in the Engineer form.
 
   The Engineer is also available from the command line via `--at-engineer "REQUEST"`,
-  allowing AI agents to spawn it as a ProcessWire-specialist sub-agent. Native AgentTools
-  migration creation remains available only as an explicit compatibility workflow. See the
-  [CLI reference](#cli-reference) below and `AGENTS.md` for details.
+  allowing AI agents to spawn it as a ProcessWire-specialist sub-agent.
 
-- **Migrations**: Native AgentTools migrations can still be listed, viewed, applied,
-  exported, imported, and deleted for compatibility. For normal repeatable site changes in
-  this fork, prefer RockMigrations and use AgentTools for inspection and verification.
+- **Migrations**: This fork uses RockMigrations for repeatable site changes. A native
+  AgentTools migration mode remains available in the module but is not the default; see the
+  module configuration.
 
 - **Tasks**: Run predefined Engineer workflows from the admin, such as security scans,
   log reviews, SEO/content reviews, migration reviews, accessibility checks, and static
@@ -203,17 +201,6 @@ Use RockMigrations for fields, templates, fieldgroups, roles, permissions,
 module config, and repeatable structural pages. Ask the user before treating
 content pages as seed data.
 
-### Native AgentTools migrations compatibility
-
-AgentTools still includes its native migration system. It writes timestamped PHP
-files to `site/assets/at/migrations/` and tracks applied files in module config.
-The admin UI can list, view, apply, delete, export, and import those migrations,
-and the CLI exposes `--at-migrations-*` plus `--at-engineer-migrate`.
-
-Keep this feature for compatibility with AgentTools-native projects, but do not
-use it for normal site changes in this RockMigrations-focused fork unless the
-user explicitly asks for native AgentTools migrations.
-
 ## Background jobs with cron
 
 Long-running Engineer, Page Engineer, and Task requests can be queued from the
@@ -304,17 +291,6 @@ it is `FcgidIOTimeout`.
 
 All commands are run from your ProcessWire root directory (where `index.php` lives). Note that most of these CLI commands are intended to be run by AI agents on your behalf, but are documented here for reference.
 
-### Native AgentTools migration commands
-
-These commands are compatibility features for AgentTools-native projects. In this
-fork, prefer RockMigrations for normal repeatable site changes.
-
-| Command | Description |
-|---------|-------------|
-| `php index.php --at-migrations-apply` | Apply all pending native AgentTools migrations |
-| `php index.php --at-migrations-list` | List native AgentTools migrations and their status (applied/pending) |
-| `php index.php --at-migrations-test` | Preview pending native AgentTools migrations without applying them |
-
 ### Site map commands
 
 The site map gives AI agents a complete JSON overview of your ProcessWire installation —
@@ -342,7 +318,6 @@ from the command line without needing to enter an interactive session.
 | `echo 'CODE' \| php index.php --at-stdin` | Evaluate multi-line PHP code piped from stdin |
 | `php index.php --at-cli` | Open an interactive agent CLI session |
 | `php index.php --at-engineer "REQUEST"` | Ask the Engineer a question or request guidance |
-| `php index.php --at-engineer-migrate "REQUEST"` | Compatibility: create a native AgentTools migration when that workflow is enabled |
 | `php index.php --at-engineer-site-info pages\|schema\|modules [--refresh]` | Print generated site info JSON without calling an AI provider |
 | `php index.php --at-engineer-api-docs-list` | List available ProcessWire API.md documentation without calling an AI provider |
 | `php index.php --at-engineer-api-docs-get NAME` | Print a ProcessWire API.md documentation file without calling an AI provider |
@@ -369,70 +344,6 @@ PHP
 **`--at-cli`** opens an interactive session where your AI agent can write code to `agent_cli.php`
 and run it, with full access to all ProcessWire API variables (`$pages`, `$templates`,
 `$fields`, `$modules`, etc.). See `agent_cli.md` for full details.
-
----
-
-## Native AgentTools migration file reference
-
-This reference documents the built-in AgentTools migration format for compatibility
-with AgentTools-native projects. For this fork's normal workflow, use RockMigrations
-instead.
-
-### File naming
-
-Migration files use a timestamp prefix to ensure they are always applied in the
-correct order, regardless of the environment:
-
-```
-YYYYMMDDhhmmss_description.php
-```
-
-Example: `20260403155146_add-blog-post-template.php`
-
-- `YYYY` — 4-digit year
-- `MM` — 2-digit month
-- `DD` — 2-digit day
-- `hh` — 2-digit hour (24-hour)
-- `mm` — 2-digit minute
-- `ss` — 2-digit second
-- `description` — short description in page-name format (lowercase, hyphens)
-
-### File structure
-
-Every migration follows this structure:
-
-```php
-<?php namespace ProcessWire;
-
-$name = wire('at')->migrations->getName(__FILE__);
-echo "# $name\n\n";
-
-// Idempotency check — skip if change already exists
-if($templates->get('hello-world')) {
-    echo "- Skipped: template 'hello-world' already exists.\n";
-    return;
-}
-
-// Make the change using the ProcessWire API
-$t = new Template();
-$t->name = 'hello-world';
-$t->save();
-
-echo "- Created template: hello-world\n";
-echo "- $name has been applied\n";
-```
-
-**Key points:**
-
-- All ProcessWire API variables are available (`$pages`, `$templates`, `$fields`, `$modules`, etc.)
-- The idempotency check at the top means the migration can be safely re-run — if the
-  change already exists it skips gracefully rather than erroring out
-- Use `echo` statements to report what the migration did; this output is shown in
-  both the CLI and the admin UI
-- Always use names to refer to templates, fields, and pages — never database IDs,
-  as IDs differ between environments
-- The applied migrations registry is stored in the database (not in a file), so it
-  is never overwritten when you rsync migration files to a server
 
 ---
 

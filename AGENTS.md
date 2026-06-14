@@ -30,11 +30,6 @@ Run from the ProcessWire root directory (where `index.php` lives):
 | `php index.php --at-engineer-read-file PATH` | Read a local site file without calling an AI provider |
 | `php index.php --at-cron` | Process one pending AgentTools background job; intended for system cron |
 
-Native AgentTools migration commands (`--at-migrations-*` and
-`--at-engineer-migrate`) exist for compatibility with AgentTools' built-in
-migration system. Do not use them for normal site changes in this project unless
-the user explicitly asks for native AgentTools migrations.
-
 ## Getting oriented on a new site
 
 If you are working on a site for the first time, run:

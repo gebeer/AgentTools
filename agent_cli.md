@@ -46,10 +46,6 @@ All commands are run from the ProcessWire root directory (where `index.php` live
 | `php index.php --at-engineer-read-file PATH` | Read a local site file without calling an AI provider |
 | `php index.php --at-cron` | Process one pending AgentTools background job; intended for system cron |
 
-Native AgentTools migration commands (`--at-migrations-*` and
-`--at-engineer-migrate`) remain available for compatibility, but they are not the
-default migration workflow for this project.
-
 ### When to use `--at-eval` vs `--at-stdin`
 
 `--at-eval` is convenient for simple expressions but is subject to shell escaping
@@ -97,8 +93,7 @@ php index.php --at-engineer "How many published pages does this site have?"
 ~~~~~
 
 In RockMigrations mode, use `--at-engineer` for questions, state inspection, and
-guidance. Do not use `--at-engineer-migrate` unless the user explicitly asks for
-native AgentTools migrations and the Engineer is configured for that workflow.
+guidance.
 
 Several read-only helper commands are available without calling an AI provider:
 
@@ -176,15 +171,3 @@ For repeatable ProcessWire changes:
 Use RockMigrations for fields, templates, roles, permissions, module config, and
 repeatable structural pages. Ask the user before treating content pages as seed
 data.
-
----
-
-## Native AgentTools migrations compatibility
-
-AgentTools includes a native migration system that writes files to
-`site/assets/at/migrations/` and applies them through `--at-migrations-*` commands
-or **Setup > Agent Tools**.
-
-This native system is kept for compatibility with AgentTools-native projects. It
-is not the default migration workflow for this project. Use it only when the user
-explicitly requests native AgentTools migrations.

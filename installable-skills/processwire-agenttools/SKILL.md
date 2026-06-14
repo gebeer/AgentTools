@@ -40,10 +40,6 @@ Run from the ProcessWire root directory (where `index.php` lives).
 | `php index.php --at-engineer-api-docs-search TERM` | Search ProcessWire API.md documentation without calling an AI provider |
 | `php index.php --at-engineer-read-file PATH` | Read a local site file without calling an AI provider |
 
-Native AgentTools migration commands (`--at-migrations-*` and
-`--at-engineer-migrate`) remain available for compatibility, but they are not the
-default migration workflow for this project.
-
 ## Getting oriented on a new site
 
 If you are working on a site for the first time, run:
@@ -101,10 +97,6 @@ Optional flags go before the request string:
 - `--model=N` — use agent at index N, where 0 is the primary configured agent
 - `--readonly` — allow queries only; available for `--at-engineer`
 - `--verbose` — write tool call names to stderr as they execute
-
-Use `--at-engineer-migrate` only when the user explicitly requests native
-AgentTools migrations and the Engineer is configured for that compatibility
-workflow.
 
 ## Available API variables
 

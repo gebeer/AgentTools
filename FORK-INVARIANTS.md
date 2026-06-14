@@ -107,11 +107,6 @@ use** native migration tooling, or merely **prohibit the agent from using it**?
 - Upstream-introduced passages (merged clean, no conflict) that reintroduce native
   migration guidance. **This is the silent-drift case — the audit's main job.**
 
-> **Known pre-existing debt:** under the hard-scrub rule, `agent_cli.md` (it still shows
-> `--at-engineer-migrate`) and any native how-to in `migrations.md` / `SKILL.md` currently
-> *violate* these rules. The diff-driven audit only catches *new* upstream drift, so this
-> backlog needs a one-time scrub pass separately.
-
 ---
 
 ## 3. Drift tripwires — upstream changes that force a re-check
