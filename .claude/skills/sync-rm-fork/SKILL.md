@@ -15,25 +15,32 @@ git conflict (visible) but **silent semantic drift**: upstream wording/code that
 clean yet contradicts the overlay.
 
 This skill drives the sync: deterministic git + guardrails, then a **diff-driven semantic
-audit** (subagents) against `FORK-INVARIANTS.md`. The audit is **report-only** — propose
-fixes, get human approval, then apply.
+audit** (subagents) against the audit rubric in `references/FORK-INVARIANTS.md`. The audit
+is **report-only** — propose fixes, get human approval, then apply.
+
+> **Rubric location.** The rubric lives in this skill at `references/FORK-INVARIANTS.md`.
+> Subagents are dispatched from the repo root and have no skill-directory context, so cite
+> the full repo-root path to them: `.claude/skills/sync-rm-fork/references/FORK-INVARIANTS.md`.
 
 ## ⛔ Hard rule
 
 **NEVER open a PR from the patch branch to `upstream`.** This is a permanent, deliberate
 divergence, not a contribution. Ignore GitHub's "create a pull request" link after pushing.
 
-## Phase 0 — Detect (capture OLD *before* fetch)
+## Phase 0 — Detect scope
 
 ```bash
-OLD=$(git rev-parse upstream/main)      # last synced upstream — MUST capture before fetch
-git fetch upstream
-NEW=$(git rev-parse upstream/main)
-[ "$OLD" = "$NEW" ] && echo "no upstream change — stop" && exit 0
+.claude/skills/sync-rm-fork/scripts/detect-scope.sh
 ```
 
-`OLD..NEW` is the exact upstream surface to audit. Losing it (fetching before capturing)
-means re-auditing everything blindly — don't.
+Read-only (only updates remote-tracking refs). It captures `OLD` **before** fetching —
+structurally, so the "fetch before capture" footgun can't happen — computes `NEW`, and
+prints `UPSTREAM_CHANGED: yes|no`, the `OLD..NEW` commits, the **changed overlay files**
+(your Phase 3 audit scope), and heuristic §3 drift hints.
+
+- `UPSTREAM_CHANGED: no` → routine sync has nothing to do; stop (or use full-state mode).
+- `UPSTREAM_CHANGED: yes` → **record the printed `OLD` and `NEW` shas** — Phase 1 rebases
+  onto `NEW`; Phase 3 diffs each file over `OLD..NEW`.
 
 ## Phase 1 — Sync main + backup + rebase
 
@@ -51,27 +58,27 @@ overlap — resolve on the merits, and never re-strip markdown trailing whitespa
 
 ## Phase 2 — Deterministic guardrails
 
-Run the tripwire block from `FORK-INVARIANTS.md` §1 (php -l + the invariant greps). Any
-failure is a hard regression in the rebase — fix before proceeding.
+```bash
+.claude/skills/sync-rm-fork/scripts/guardrails.sh
+```
+
+The executable single source of truth for `references/FORK-INVARIANTS.md` §1 (php -l + the
+invariant greps). **Non-zero exit = a hard regression in the rebase — fix before proceeding.**
 
 ## Phase 3 — Diff-driven semantic audit (subagents, report-only)
 
-List the files upstream changed in `OLD..NEW` that the overlay also touches:
+Your audit scope is the **changed overlay files** already listed in Phase 0's
+`detect-scope.sh` report (it also flagged likely `references/FORK-INVARIANTS.md` §3 hits).
+Still skim §3 yourself — an upstream change to tools, `eval_php`, the CLI dispatch, module
+version/`$keys`, or migration docs forces a re-audit of the mapped surface even if our file
+didn't conflict, and the §3 hints are heuristic, not exhaustive.
 
-```bash
-git diff --name-only "$OLD".."$NEW" -- README.md AGENTS.md agent_cli.md \
-  installable-skills/processwire-agenttools/SKILL.md \
-  installable-skills/processwire-agenttools/migrations.md AgentToolsEngineer.php
-```
-
-Also consult `FORK-INVARIANTS.md` §3 (drift tripwires) — an upstream change to tools,
-`eval_php`, the CLI dispatch, module version/`$keys`, or migration docs forces a re-audit
-of the mapped surface even if our file didn't conflict.
+Per-file diff for each subagent: `git diff <OLD>..<NEW> -- <FILE>` (use the shas from Phase 0).
 
 **Dispatch one subagent per affected file, in parallel.** Each gets this prompt:
 
 > You are auditing one file of a downstream fork after an upstream sync. The fork's rules
-> are in `FORK-INVARIANTS.md` (read it). Inputs: (a) upstream's change to `<FILE>`:
+> are in `.claude/skills/sync-rm-fork/references/FORK-INVARIANTS.md` (read it). Inputs: (a) upstream's change to `<FILE>`:
 > `git diff <OLD>..<NEW> -- <FILE>`; (b) our current post-rebase `<FILE>`. Report only —
 > do NOT edit. Find: (1) native-migration guidance reintroduced or surviving against the
 > hard-scrub rule (§2); (2) our prose now contradicting changed upstream code/behavior;
@@ -81,7 +88,7 @@ of the mapped surface even if our file didn't conflict.
 ## Phase 4 — Report → approve → apply → push
 
 Aggregate findings into a short report. Present proposed edits for **human approval**
-(report-only philosophy). On approval, apply, re-run Phase 2 guardrails, then:
+(report-only philosophy). On approval, apply, re-run `scripts/guardrails.sh`, then:
 
 ```bash
 git push --force-with-lease origin feature/rockmigrations-agent-instructions
@@ -94,7 +101,7 @@ upstream is unchanged. That is correct for routine syncs but **blind to pre-exis
 fork debt** and to drift accumulated before the invariants tightened.
 
 Run a **full-state audit** instead when: doing an initial/one-time debt sweep, after a
-material change to `FORK-INVARIANTS.md`, or as a periodic deep check. Procedure:
+material change to `references/FORK-INVARIANTS.md`, or as a periodic deep check. Procedure:
 
 - Skip Phase 0's early-exit. Audit the **entire current content** of every overlay-touched
   file (not a diff): `README.md`, `AGENTS.md`, `agent_cli.md`,
@@ -102,11 +109,12 @@ material change to `FORK-INVARIANTS.md`, or as a periodic deep check. Procedure:
   `AgentToolsEngineer.php` for code invariants.
 - Use the Phase 3 subagent prompt, but state the scope is **full-state** (whole file), and
   fan out one subagent per file in parallel (Opus).
-- Still **report-only** → human-approved fixes → Phase 2 guardrails → push.
+- Still **report-only** → human-approved fixes → `scripts/guardrails.sh` → push.
 
 ## Common mistakes
 
-- Fetching before capturing `OLD` → audit scope lost.
+- Fetching before capturing `OLD` → audit scope lost (`detect-scope.sh` captures `OLD`
+  first; use it rather than hand-running the git dance).
 - Treating a clean merge as "nothing to check" → silent drift is the whole point of Phase 3.
 - Re-stripping markdown trailing whitespace during conflict resolution → reintroduces the
   recurring README conflict.

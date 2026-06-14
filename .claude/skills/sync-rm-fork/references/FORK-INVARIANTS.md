@@ -12,8 +12,8 @@ migration system.** Native migrations remain available but only behind an opt-in
 
 ## How to use this doc
 
-- **Deterministic guardrails** (the `grep`/`php -l` blocks below) are cheap tripwires —
-  run them every sync; a failure is a hard regression.
+- **Deterministic guardrails** (`scripts/guardrails.sh`) are cheap tripwires — run them
+  every sync; a failure is a hard regression.
 - **Prose invariants** need an agent: read upstream's `OLD..NEW` diff over the doc files,
   then check our post-rebase prose against the "must hold" / "must never appear" rules.
 - This file is **report-only** input. The audit proposes fixes; a human approves them.
@@ -52,18 +52,18 @@ Must hold:
    branch (the `else`/`usesNativeMigrations()` path) is upstream's original text/logic,
    unchanged. The toggle is fully reversible.
 
-Deterministic tripwire (all must pass):
+Deterministic tripwire — run the validator (the executable single source of truth for
+these checks, so the documented tripwire and the run tripwire can't drift apart):
 
 ```bash
-php -l AgentToolsEngineer.php AgentTools.module.php AgentToolsEngineerConfig.php ProcessAgentTools.module.php
-grep -q "migrationWorkflowRockMigrations = 'rockmigrations'" AgentToolsEngineer.php
-grep -q "function usesNativeMigrations" AgentToolsEngineer.php
-grep -q '@property string $engineer_migration_workflow' AgentTools.module.php
-# save_migration must be guarded by usesNativeMigrations() in BOTH tool arrays:
-test "$(grep -cE 'usesNativeMigrations\(\)\) \{' AgentToolsEngineer.php)" -ge 2
-# native migrate CLI must be neutralised in RM mode (invariant 1.3):
-grep -qF 'migrate && !$this->usesNativeMigrations()' AgentToolsEngineer.php
+.claude/skills/sync-rm-fork/scripts/guardrails.sh   # exit 0 = all hold; exit 1 = hard regression
 ```
+
+It lints the four overlay PHP files and asserts: the `migrationWorkflowRockMigrations`
+constant and `usesNativeMigrations()` helper exist; the `engineer_migration_workflow`
+`@property` is registered; `save_migration` is double-guarded in both tool arrays
+(invariant 1.2); and the native migrate CLI is neutralised (invariant 1.3). To change
+*what* is checked, edit the script — not a second copy of these greps.
 
 ---
 
@@ -129,4 +129,7 @@ When `git diff OLD..NEW upstream/main` touches any of these, re-audit the named 
 - `docs/migration-related.md`, `docs/rockmigrations-agenttools-plan.md` — overlay intent/refs.
 - `.agents/skills/processwire-rockmigrations` — committed symlink (machine-specific abs path).
 - `.editorconfig` — preserves markdown trailing whitespace (kills the README rebase churn).
-- `FORK-INVARIANTS.md` — this file.
+- `.claude/skills/sync-rm-fork/SKILL.md` — the upstream-sync skill; the only consumer of this rubric.
+- `.claude/skills/sync-rm-fork/references/FORK-INVARIANTS.md` — this file (bundled with the skill).
+- `.claude/skills/sync-rm-fork/scripts/detect-scope.sh` — Phase 0 read-only scope/delta gatherer.
+- `.claude/skills/sync-rm-fork/scripts/guardrails.sh` — §1 validator (executable single source of truth).
